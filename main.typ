@@ -190,7 +190,7 @@
 
         Moderní borrow checker musí provádět výpočet na control flow grafu, jinak by velmi silně programátora omezoval.
 
-        Povšimněte si zde zajímavého případu, kde při vstupu do větve None není žádná reference map platná.
+        Povšimněte si zde zajímavého případu, kde při vstupu do větve None není žádná reference map platná, protože metoda získávají tuto referenci selhala. Moderní borrow borrow checker musí vzít v potaz i takové situace.
       ```
   )
 ]
@@ -222,27 +222,39 @@
 #slide[
   #only("1,4-")[
     = Implementation
-    
+  ]
+  #only("1")[
     - Parsing, AST, HIR
     - Lifetime handling in the type checker
     - Variance analysis
     - BIR construction
   ]
+  #only("4-")[#text(fill: luma(50%))[
+    - Parsing, AST, HIR
+    - Lifetime handling in the type checker
+    - Variance analysis
+    - BIR construction
+  ]]
   #only("2")[
       #block(width: 100%, align(center, image("pipeline.svg", height: 80%)))
   ]
   #only("3")[
       #block(width: 100%, align(center, image("bir.svg", height: 80%)))
   ]
-  #only("4-")[
+  #only("4")[
     - Fact collection
     - Polonius FFI
     - Error reporting
   ]
+  #only("5-")[#text(fill: luma(50%))[
+    - Fact collection
+    - Polonius FFI
+    - Error reporting
+  ]]
   #only("5-")[
     - Changed #text(fill:green)[+10174] #h(10pt) #text(fill:red)[-1374]
       - _48%_ GCC upstream
-      - _20%_ Rust GCC PR open
+      - _20%_ Rust GCC PR in review
   ]
 
   #notes(
@@ -255,13 +267,16 @@
 
       U generických typů bylo dále nutné spočítat takzvanou varianci generických argumentů. Variance určuje vztah mezi relacemi typů a relacemi generických parametrů těchto typů.
 
-      Dalším krokem byl návrh zcela nové vnitří reprezentace, nazvané Borrow-checker IR. Jak jste viděli během představení analýzy, výpočet probíha na control flow grafu, kterým Rust GCC nedisponoval. Control flow graf programu je standartně vytvořem až hluboho uvnitř sdílené části platformy GCC a neobsahuje důležité informace specifické pro Rust.
+    
+      Dalším krokem byl návrh zcela nové vnitří reprezentace, nazvané Borrow-checker IR. Jak jste viděli během představení analýzy, výpočet probíha na control flow grafu. Na tomto srovnání vnitřních reprezentací Rust GCC and rustc můžete vidět, že zatím co abstraktní syntaktický strom a vysoko úrovňová reprezentace, která má také formu stromu je obou kompilátorům společná. Rust GCC předává middle-endu program ve formě stromu, zatímco rustc má vlastní reprezentaci MIR, založenou na control flow grafu. Právě na MIRu probíhá v rustc borrow checking.
 
-      Z této nové reprezentace jsou pak získány relevatní informace o programu, které jsou očíslovány. Například: na uzlu control flow grafu číslo 5 došlo ke vniku exkluzivní reference číslo 8, která referuje na proměnou číslo 12.
+      Control flow graf GCC není pro tyto účely dostatečný, protože neopsahuje informace specifické pro rust. Proto bylo nutné vytvořit novou reprezentaci inspirovanou MIRerm, a přeložit do ní program s vysokoúrovňové reprezentace a reprezetace typů.
 
-      Tyto informace jsou následně předány výpočetnímu systému Polonius k samotné analýze. To, že komunikace s Poloniem probíhá pomocí těchnto očíslovaných informací nám umožnňuje Polonia využívat, i když byl původně vytvořen pro zcela jiný překladač.
+      Z této nové reprezentace jsou pak získány relevatní informace o programu, předány výpočetnímu systému Polonius, vivinutému vývojáři rustc, k samotné analýze.
 
       Protože je Polonius implementovaný v Rust, bylo nutné implementovat tenkou vrstvi C ABI a Rustu pro propojení s překladačem. Pomocí této vrstvy jsou zpět také předýny informace o nalezených chybách, které jsou překladačem předánu uživateli.
+
+      Moje řešení zahrnuje zhruba deset tisíc řídek kódu v různých částech projektu. Téměr polovina již byla přijata do hlavního repozitáře GCC. U dalších 20% probíhá review pull requestu a zbytek je prozatím v mé vývojové větvi.
     ```
   )
 ]
@@ -282,7 +297,7 @@
 
 #let error(body) = {
   v(1em)
-  text(font: "Roboto Mono", size: .8em)[
+  text(font: "DejaVu Sans Mono", size: .8em)[
     *#text(fill:red)[Error:]* #body
   ]
 }
@@ -298,10 +313,8 @@
    }
    ```
 
-   #uncover(2)[
      #error([Found loan errors in function
             mutable_borrow_while_immutable_borrowed])
-  ]
 
     #notes(
       ```md
@@ -343,10 +356,8 @@
    }
    ```
 
-   #uncover(2)[
-     #error([Found loan errors in function
+    #error([Found loan errors in function
             mutable_borrow_while_immutable_borrowed])
-  ]
 
       #notes(
       ```md
@@ -368,7 +379,7 @@
   }
   ```
 
-  #uncover(2)[#error([Found subset errors in function complex_cfg_subset])]
+  #error([Found subset errors in function complex_cfg_subset])
 
     #notes(
     ```md
@@ -399,6 +410,13 @@
         Protože Rust GCC není schopen v tuto chvíli sestavit Polonius, není možné integrovat ho do build systému GCC přímo.
       ```
     )
+]
+
+#slide[
+  = Future
+
+  - Open Source Security support
+  - GSoC 2024
 ]
 
 // #slide[
