@@ -37,32 +37,8 @@
       dovolte abych vám představil výsledky své diplomové práce nazvané "Analýza bezpečného přístupu k paměti pro kompilátor Rust GCC".
 
       Cílem mé práce bylo implementovat statickou analýzu, známou jako "borrow checker" do vznikajícího nového překladače jazyka Rust nad platformou GCC.
-
-      ~Rust je moderní jazyk pro systémové programování, který cílí primárně na oblasti dosud dominované jazyky C a C plus plus.
-      Jeho hlavní předností je robustní typový systém, který mimo jiné poskytuje silné garance bezpečnosti přístupu do paměti a to i pro konkurentní kód. V poslední době můžeme vidět roustoucí adopci od Linuxováho a Windowsového kernelu a systémových knihoven,
-      serverové systémy Amazonu, Dropboxu, Claudflare až po některé embedded zařízení.~
       ```
     )
-]
-
-#slide[
-  = Outline
-
-  - Borrow Checking Introduction
-  - Polonius
-  // - Rust GCC
-  - Implementation
-  - Results
-  - Limitations
-  - Polonius WG Review
-
-  #notes(
-    ```md
-    - Nejprve vám krátce představím samotnou analýzu a její nejmodernější variantu, projekt Polonius, na kterém je založena tato práce.
-    - Potom vás seznámím se základními aspekty implementační části této práce, dosaženými výsledky a aktuálními omezeními.
-    - Svoji prezentaci zakončním zpětnou vazbou od vývojářů oficiálního překladače Rustu a projektu Polonius.
-    ```
-  )
 ]
 
 #slide[
@@ -102,9 +78,11 @@
 
   #notes(
     ```md
+    Nejdříve vám seznámím se samotnou analýzou a problémy které nalézá.
+    
     Základní operací při práci s pamětí je přesun unikátních zdrojů do jiného objektu, takzvaný "move".
     
-    Typickým příkladem je přiřazení vektoru (dynamického pole) do jiné proměné. V takovém případě musíme zajistit, že k přesunu unikátního objektu dojde pouze jednou a že k objektu není dále přistupováno z proměné, ze které byl přesunut.
+    Pro move musíme zajistit, že k přesunu unikátního objektu dojde pouze jednou a že k objektu není dále přistupováno z proměné, ze které byl přesunut.
 
     Pro dočasné používání objektu musíme zajistit, že objekt bude existovat po celou dobu dočasného používání. Typickou chybou v této oblasti je například návrat reference na lokální hodnotu.
 
@@ -114,50 +92,9 @@
 ]
 
 #slide[
-  = Lexical Borrow Checker
-
-  #only(1)[
-    ```rust
-    {
-      let mut data = vec!['a', 'b', 'c'];
-      let slice = &mut data[..];
-      capitalize(slice);         
-      data.push('d'); 
-      data.push('e');
-      data.push('f');
-    }
-    ```
-  ]
-  #only(2)[
-    ```rust
-    {
-      let mut data = vec!['a', 'b', 'c'];
-      let slice = &mut data[..]; // <---+ 'lifetime
-      capitalize(slice);         //     |
-      data.push('d'); // ERROR!  //     |
-      data.push('e'); // ERROR!  //     |
-      data.push('f'); // ERROR!  //     |
-    } // <------------------------------+
-    ```
-
-  ]
-
-
-  #notes(
-    ```md
-    Hlavním problémem v této analýze je zjistit, jak dlouho bude bude dočasné používání objektu trvat.
-
-    Dřívější verze borrow checker k tomu používaly lexikální analýzu. Zjednodušeně řečeno, dívaly se, na kterých řádcích musí být reference validní a to po podle scopu příslušných proměných.
-
-    Tento příklad je neprávem hlášen jako chyba, protože metoda push vyžaduje vlastni referenci na vektor data.
-    ```
-  )
-]
-
-#slide[
   = Checking Functions
 
-  ```rust
+  #let f = ```rust
   struct Vec<'a> { ... }
 
   impl<'a> Vec<'a> {
@@ -166,6 +103,20 @@
     }
   }
   ```
+
+  #only(1)[#f]
+  #only("2-")[
+    #text(size: 0.7em, f)
+
+    ```rust
+    let a = 5;                     //  'a   'b   'b: 'a
+    {                              //              
+       let mut v = Vec::new();     //   *          
+       v.push(&a);                 //   *    *     OK
+       let x = v[0];               //   *    *     OK
+     }                             //        *     OK
+    ```
+  ]
 
     #notes(
     ```md
@@ -179,7 +130,7 @@
 ]
 
 #slide[
-  = NLL & Polonius
+  = CFG Computation
 
   #grid(columns: (3fr, 1fr))[
     ```rust
@@ -265,16 +216,30 @@
 // ]
 
 #slide[
-  = Implementation
-
-  - Parsing, AST, HIR
-  - Lifetime handling in the type checker
-  - Variance analysis
-  - BIR construction
-  - Fact collection
-  - Polonius FFI
-  - Error reporting
-  - Changed #text(fill:green)[+10174] #h(10pt) #text(fill:red)[-1374]
+  #only("1,4-")[
+    = Implementation
+    
+    - Parsing, AST, HIR
+    - Lifetime handling in the type checker
+    - Variance analysis
+    - BIR construction
+  ]
+  #only("2")[
+      #block(width: 100%, align(center, image("pipeline.svg", height: 80%)))
+  ]
+  #only("3")[
+      #block(width: 100%, align(center, image("bir.svg", height: 80%)))
+  ]
+  #only("4-")[
+    - Fact collection
+    - Polonius FFI
+    - Error reporting
+  ]
+  #only("5-")[
+    - Changed #text(fill:green)[+10174] #h(10pt) #text(fill:red)[-1374]
+      - _48%_ GCC upstream
+      - _20%_ Rust GCC PR open
+  ]
 
   #notes(
     ```md
@@ -432,12 +397,24 @@
     )
 ]
 
-#slide[
-  = Polonius WG Review
-]
+// #slide[
+//   = Polonius WG Review
+// ]
 
 #title-slide[
   #image("image.png", height: 35%)
   #text(size: 2em)[Thank You] \
   #text(size:1.5em)[for your attention]
 ]
+
+   #let code(lines, block) = {
+   show raw: it => stack(..it.lines.map(line =>
+    box(
+    width: 100%,
+    height: 1.25em,
+    inset: 0.25em,
+    align(horizon, stack(if lines.contains(line.number) { line.body } else { strike(stroke: rgb(255, 255, 255, 70%) + 1.25em, line.body) }
+    )))))
+
+    block
+  }
