@@ -82,11 +82,11 @@
     
     Základní operací při práci s pamětí je přesun unikátních zdrojů do jiného objektu, takzvaný "move".
     
-    Pro move musíme zajistit, že k přesunu unikátního objektu dojde pouze jednou a že k objektu není dále přistupováno z proměné, ze které byl přesunut.
+    Pro move musíme zajistit, že k přesunu unikátního objektu dojde pouze jednou a že k původnímu objektu není dále přistupováno.
 
-    Pro dočasné používání objektu musíme zajistit, že objekt bude existovat po celou dobu dočasného používání. Typickou chybou v této oblasti je například návrat reference na lokální hodnotu.
+    Pro dočasné používání objektu, což je například volání metody, musíme zajistit, že objekt bude existovat po celou dobu dočasného používání. Typickou chybou v této oblasti je například návrat reference na lokální hodnotu.
 
-    Pro bezpečnou součinost více vláken musíme zajistit buďto sdílený přístup více vláken pouze pro čtení, a nebo exkluzivní přístup pro zápis.
+    Pro bezpečnou součinost více vláken musíme zajistit buďto sdílený přístup pouze pro čtení, a nebo exkluzivní přístup pro zápis.
     ```
   )
 ]
@@ -122,9 +122,11 @@
     ```md
     Protože analýza celého programu by měla extrémní výpočetní nároky, provádí borrow checker pouze analýzu uvnitř funkce.
 
-    Na hranicích funkce musí programátor popsat popsat invarianty platnosti referencí a to pomocí lifetime anotací, na slidu apostrof a písmena `a` a `b`.
+    Na hranicích funkce musí programátor popsat popsat invarianty platnosti referencí a to pomocí lifetime anotací, na slidu apostrof `a` a apostrof `b`.
 
     Na příkladu zde máme vektor referencí, jejihž platnost v rámci programu je zdola omezena regionem apostrof `a`. Pokud chceme vložit fo vektoru novou referenci s platností apostrof `b`, musíme říci, že oblast programu apostrof `b` je alespoň tak velká, jako apostrof `a`.
+
+    Zde na konr0tním příkladu.
     ```
   )
 ]
@@ -184,9 +186,11 @@
 
     #notes(
       ```md
-        Další verze borrow checkeru nazvaná "Non-lexical Lifetimes" provádí analýzu na control flow grafu, čímž značně omezuje false positive případy.
+        Nejtěší částí analýzy je dosazení konrétních částí programu za lifetime proměné, tedy nalezení oblastí, kde musí být dané reference validní.
 
-        Nicméně kód na slidu stále nedokáže validovat.
+        Moderní borrow checker musí provádět výpočet na control flow grafu, jinak by velmi silně programátora omezoval.
+
+        Povšimněte si zde zajímavého případu, kde při vstupu do větve None není žádná reference map platná.
       ```
   )
 ]
