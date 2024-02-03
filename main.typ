@@ -254,7 +254,8 @@
   #only("5-")[
     - Changed #text(fill:green)[+10174] #h(10pt) #text(fill:red)[-1374]
       - _48%_ GCC upstream
-      - _20%_ Rust GCC PR in review
+      - _11%_ Rust GCC
+      - _~~~9%_ PR in review
   ]
 
   #notes(
@@ -280,18 +281,24 @@
     ```
   )
 ]
-
 #slide[
   = Results
 
-  - Move errors
+
+  - Limitations
+  \  - Move errors
   - Subset errors
   - Access rule errors
 
+  
     #notes(
     ```md
     A nyní už v výsledkům. Jak jste viděli, tak tato analýza vyžaduje úpravy ve velké části překladače. Tedy bylo nutné vybudovat rozsáhlou infrastrukturu, aby bylo možné vůbec začít se samotnou analýzou. Proto jsou možnosti implementované analýzi zatím omezené, na poměrně jednoduchý kód. Nicméně na tomto kódu dokážeme detekovat velkou část porušení pravidel přístupu k paměti.
-    ```
+
+
+    Známe limitace, jsou popsané detailněji v textu mé práce, a všechny jsou technického charakteru a mělo by být možné je vyřešit prostým rozšířením existujícího kódu.
+
+    Hlavní limitací je překlad složitých jazykových kontruktů do nové reprezentace.    ```
   )
 ]
 
@@ -356,7 +363,7 @@
    }
    ```
 
-    #error([Found loan errors in function
+     #error([Found loan errors in function
             mutable_borrow_while_immutable_borrowed])
 
       #notes(
@@ -379,8 +386,7 @@
   }
   ```
 
-  #error([Found subset errors in function complex_cfg_subset])
-
+  #error([Found subset errors in function complex_cfg_subset])]
     #notes(
     ```md
       Zde je demostrována kontrola na hracinici funkce. V první větvi podmínky je navrácena reference, jejíž oblast života není jakkoliv provázána s návratovou hodnotou. Proto není možné prokázat, že vrácená reference vždy ukazuje na validní objekt.
@@ -388,41 +394,21 @@
   )
 ]
 
-#slide[
-  = Limitations
-  
-  - BIR builder
-  - Error location and reason
-  - Metadata export
-  - Implicit constraints
-  - Polonius build
-
-      #notes(
-      ```md
-        Jak jsem zmínil, tato analýza je velmi komprexní problém a proto jsou možnosti moji implemetace limitované. Nicméně všechny známe limitace, popsané detailněji v textu mé práce, jsou technického charakteru a mělo by být možné je vyřešit prostým rozšířením existujícího kódu.
-
-        Hlavní limitací je konstrukce nové mezi-reprezentace pro komplexní konstrukty jazyka Rust. Aktuálně je pokryta pouze základní část jazyka, který byla dostatečná pro testování zbytku analýzy.
-
-        V tuto chvíli jsou informace pro chybová zprávy omezené na název funkce a typ chyby. Do budoucna je nutné přidat mapování na zdrojový kód.
-
-        Analýza v tuto chvíli bere v potaz je jednu jednotku překladu. Je potřeba doplnit exporat a import informací o varianci pro používání knihoven.
-
-        Protože Rust GCC není schopen v tuto chvíli sestavit Polonius, není možné integrovat ho do build systému GCC přímo.
-      ```
-    )
-]
 
 #slide[
   = Future
 
   - Open Source Security support
   - GSoC 2024
+
+    #notes(
+      ```md
+        Co se budoucnosti této práce týče, můžu zmínit, že společnosti Open Source Security, jeden z hlavních sponzorů Rust GCC projevila zájem o financování pokračování mé práce.
+
+        Dále také připravujeme projekt do Google Summer of Code, který by řešil některé ze zmíněných limitací.
+      ```
+    )
 ]
-
-// #slide[
-//   = Polonius WG Review
-// ]
-
 #title-slide[
   #image("image.png", height: 35%)
   #text(size: 2em)[Thank You] \
