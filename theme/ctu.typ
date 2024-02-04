@@ -33,8 +33,7 @@
   show outline: it => block(inset: (x: 1em), it)
 
   set page(footer: 
-  utils.polylux-progress( p => box(fill: theme.accent, width: p * 100%, height: 1em, outset: (left: 24pt, right: 24pt))
-  ))
+  utils.polylux-progress( p => box(fill: theme.accent, width: p * 100%, height: 1em, outset: (left: 24pt, right: 24pt))))
 
   body
 }
@@ -64,3 +63,15 @@
 }
 
 #let notes(body) = { pdfpc.speaker-note(body) }
+
+   #let code(lines, block) = {
+   show raw: it => stack(..it.lines.map(line =>
+    box(
+    width: 100%,
+    height: 1.25em,
+    inset: 0.25em,
+    align(horizon, stack(if lines.contains(line.number) { line.body } else { strike(stroke: rgb(255, 255, 255, 70%) + 1.25em, line.body) }
+    )))))
+
+    block
+  }

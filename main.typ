@@ -44,7 +44,12 @@
 #slide[
   = Borrow Checker Rules
 
-  - Move
+  #only("1-2")[
+    - Move
+  ]
+  #only("3-")[#text(fill: luma(50%))[
+    - Move
+  ]]
   #only(2)[
     ```rust
       let mut v1 = Vec::new();
@@ -55,8 +60,15 @@
     ```
     #v(0.5em)
   ]
-  - Lifetime subset relation
-  - Borrow must outlive borrowee
+  #only("1-3")[
+    - Lifetime subset relation
+    - Borrow must outlive borrowee
+  ]
+  #only("4-")[#text(fill: luma(50%))[
+    - Lifetime subset relation
+    - Borrow must outlive borrowee
+  ]]
+
     #only(3)[
      ```rust
       fn f() -> &i32 {
@@ -78,13 +90,13 @@
 
   #notes(
     ```md
-    Nejdříve vám seznámím se samotnou analýzou a problémy které nalézá.
+    Nejdříve vám seznámím se samotnou analýzou a problémy které řeší.
     
-    Základní operací při práci s pamětí je přesun unikátních zdrojů do jiného objektu, takzvaný "move".
+    Základní operací při práci s pamětí je přesun unikátních zdrojů, takzvaný "move".
     
-    Pro move musíme zajistit, že k přesunu unikátního objektu dojde pouze jednou a že k původnímu objektu není dále přistupováno.
+    Pro move musíme zajistit, že unikátní zdroj není duplikován a že k původnímu, nyní nevalidnímu objektu, není dále přistupováno.
 
-    Pro dočasné používání objektu, což je například volání metody, musíme zajistit, že objekt bude existovat po celou dobu dočasného používání. Typickou chybou v této oblasti je například návrat reference na lokální hodnotu.
+    Pro dočasné používání, což je například volání metody, musíme zajistit, že objekt bude existovat po celou dobu tohoto používání. Typickou chybou v této oblasti je například návrat reference na lokální hodnotu.
 
     Pro bezpečnou součinost více vláken musíme zajistit buďto sdílený přístup pouze pro čtení, a nebo exkluzivní přístup pro zápis.
     ```
@@ -98,13 +110,13 @@
   struct Vec<'a> { ... }
 
   impl<'a> Vec<'a> {
-    fn add<'b> where 'b: 'a (&mut self, x: &'b i32) {
+    fn push<'b> where 'b: 'a (&mut self, x: &'b i32) {
       // ...
     }
   }
   ```
 
-  #only(1)[#f]
+  #only("1")[#f]
   #only("2-")[
     #text(size: 0.7em, f)
 
@@ -137,10 +149,14 @@
   #grid(columns: (3fr, 1fr))[
     ```rust
       fn f<'a>(map: Map<K, V>) -> &'a V {
+        // Lookup key in map.
+        // Return reference to value.
         match map.get_mut(&key) {
-          Some(value) => value,
-          None => { 
-            map.insert(key, V::default()); 
+          Some(value) => value, // Found one.
+          None => {
+            // Not found.
+            // New reference to map!
+            map.insert(key, V::default());
           }
         }
       }
@@ -148,7 +164,7 @@
   ][
     #set text(size: 0.75em, font: "Roboto Mono")
 
-    #only(2)[
+    #only(1)[
     #fletcher.diagram(
       {
       let (start, match, s, n, end, ret) = ((0,0), (0,-1), (-0.5, -2), (0.5, -2), (0, -3), (0, -4))
@@ -165,7 +181,7 @@
       edge(n, end, "->")
       edge(end, ret, "->")
     })]
-    #only(3)[
+    #only(2)[
     #fletcher.diagram(
       {
       let (start, match, s, n, end, ret) = ((0,0), (0,-1), (-0.5, -2), (0.5, -2), (0, -3), (0, -4))
@@ -190,7 +206,7 @@
 
         Moderní borrow checker musí provádět výpočet na control flow grafu, jinak by velmi silně programátora omezoval.
 
-        Povšimněte si zde zajímavého případu, kde při vstupu do větve None není žádná reference map platná, protože metoda získávají tuto referenci selhala. Moderní borrow borrow checker musí vzít v potaz i takové situace.
+        Povšimněte si zde zajímavého případu, kde při vstupu do větve None není žádná reference do proměné map platná, protože metoda získávají tuto referenci selhala. Moderní borrow borrow checker musí vzít v potaz i takové situace.
       ```
   )
 ]
@@ -236,10 +252,10 @@
     - BIR construction
   ]]
   #only("2")[
-      #block(width: 100%, align(center, image("pipeline.svg", height: 80%)))
+      #block(width: 100%, align(center, image("media/pipeline.svg", height: 80%)))
   ]
   #only("3")[
-      #block(width: 100%, align(center, image("bir.svg", height: 80%)))
+      #block(width: 100%, align(center, image("media/bir.svg", height: 80%)))
   ]
   #only("4")[
     - Fact collection
@@ -286,7 +302,8 @@
 
 
   - Limitations
-  \  - Move errors
+  \
+  - Move errors
   - Subset errors
   - Access rule errors
 
@@ -386,7 +403,7 @@
   }
   ```
 
-  #error([Found subset errors in function complex_cfg_subset])]
+  #error([Found subset errors in function complex_cfg_subset])
     #notes(
     ```md
       Zde je demostrována kontrola na hracinici funkce. V první větvi podmínky je navrácena reference, jejíž oblast života není jakkoliv provázána s návratovou hodnotou. Proto není možné prokázat, že vrácená reference vždy ukazuje na validní objekt.
@@ -410,19 +427,7 @@
     )
 ]
 #title-slide[
-  #image("image.png", height: 35%)
+  #image("media/gccrs.png", height: 35%)
   #text(size: 2em)[Thank You] \
   #text(size:1.5em)[for your attention]
 ]
-
-   #let code(lines, block) = {
-   show raw: it => stack(..it.lines.map(line =>
-    box(
-    width: 100%,
-    height: 1.25em,
-    inset: 0.25em,
-    align(horizon, stack(if lines.contains(line.number) { line.body } else { strike(stroke: rgb(255, 255, 255, 70%) + 1.25em, line.body) }
-    )))))
-
-    block
-  }
