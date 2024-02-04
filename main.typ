@@ -138,7 +138,7 @@
 
     Na příkladu zde máme vektor referencí, jejihž platnost v rámci programu je zdola omezena regionem apostrof `a`. Pokud chceme vložit fo vektoru novou referenci s platností apostrof `b`, musíme říci, že oblast programu apostrof `b` je alespoň tak velká, jako apostrof `a`.
 
-    Zde na konr0tním příkladu.
+    Zde na konrétním příkladu, můžete vidět dosazené časti programu.
     ```
   )
 ]
@@ -206,34 +206,10 @@
 
         Moderní borrow checker musí provádět výpočet na control flow grafu, jinak by velmi silně programátora omezoval.
 
-        Povšimněte si zde zajímavého případu, kde při vstupu do větve None není žádná reference do proměné map platná, protože metoda získávají tuto referenci selhala. Moderní borrow borrow checker musí vzít v potaz i takové situace.
+        Povšimněte si zde na příkladu, že při vstupu do větve None není žádná reference do proměné map platná, protože metoda získávají tuto referenci selhala. Moderní borrow borrow checker musí vzít v potaz i takové situace.
       ```
   )
 ]
-
-// #slide[
-//   = Rust Compilers
-
-//   - *rustc*
-//     - LLVM
-//     - rustc_codegen_gcc
-//     - Cranelift (Webassembly)
-//   - *Rust GCC (gccrs)*
-// ]
-
-// #slide[
-//   = Rust GCC
-
-//    - rustc_codegen_gcc
-//     - older
-//     - crosscompilation
-//     - LTO
-//   - LLVM
-//     - target support
-//     - LTO
-//     - optimizations
-//     - security plugins
-// ]
 
 #slide[
   #only("1,4-")[
@@ -243,7 +219,8 @@
     - Parsing, AST, HIR
     - Lifetime handling in the type checker
     - Variance analysis
-    - BIR construction
+
+      $A angle.l 'a, T angle.r lt.eq B angle.l 'b, F angle.r arrow.double ('a subset.eq 'b) and (T lt.eq F)$
   ]
   #only("4-")[#text(fill: luma(50%))[
     - Parsing, AST, HIR
@@ -276,22 +253,24 @@
 
   #notes(
     ```md
-      Nyní se podíváme na jednotlivé části, které jsem implementoval, abych základní variantu analýzy, kterou jsem vám představil integroval do překladače Rust GCC.
+      Nyní se podíváme na jednotlivé části, které jsem implementoval, abych základní variantu této analýzy integroval do překladače Rust GCC.
 
       V první řadě bylo třeba zajistit správné parsování lifetime anotací a jejich reprezentaci v abstraktním syntaktickém stromě a vysoko-úrovňové reprezentaci.
 
-      V dalším kroku bylo nutné provést resoluci jmen jednotlivých anotací, přiřazení použití k definicím a reprezentace unitř typového systému. Jednou z výsnamných komplikací bylo zajistit zachování správosti během operací na typech, a to hlavně během substituce generických typů.
+      V dalším kroku bylo nutné provést resoluci jmen jednotlivých anotací, přiřazení použití k definicím a reprezentace unitř typového systému.
+      Jednou z významných komplikací bylo zajistit zachování správosti během operací na typech, a to hlavně během substituce typových parametrů.
 
-      U generických typů bylo dále nutné spočítat takzvanou varianci generických argumentů. Variance určuje vztah mezi relacemi typů a relacemi generických parametrů těchto typů.
+      U generických typů bylo dále nutné spočítat takzvanou varianci generických argumentů. Variance určuje vztah mezi relacemi typů a relacemi generických parametrů těchto typů. Příklad na slidu.
 
-    
-      Dalším krokem byl návrh zcela nové vnitří reprezentace, nazvané Borrow-checker IR. Jak jste viděli během představení analýzy, výpočet probíha na control flow grafu. Na tomto srovnání vnitřních reprezentací Rust GCC and rustc můžete vidět, že zatím co abstraktní syntaktický strom a vysoko úrovňová reprezentace, která má také formu stromu je obou kompilátorům společná. Rust GCC předává middle-endu program ve formě stromu, zatímco rustc má vlastní reprezentaci MIR, založenou na control flow grafu. Právě na MIRu probíhá v rustc borrow checking.
+      Dalším krokem byl návrh zcela nové vnitří reprezentace, nazvané Borrow-checker IR. Jak jste viděli během představení analýzy, výpočet probíha na control flow grafu.
+      
+      Na tomto srovnání vnitřních reprezentací Rust GCC and rustc můžete vidět, že zatím co abstraktní syntaktický strom a vysoko úrovňová reprezentace, která má také formu stromu je obou kompilátorům společná. Rust GCC předává middle-endu program ve formě stromu, zatímco rustc má vlastní reprezentaci MIR, založenou na control flow grafu. Právě na MIRu probíhá v rustc borrow checking.
 
       Control flow graf GCC není pro tyto účely dostatečný, protože neopsahuje informace specifické pro rust. Proto bylo nutné vytvořit novou reprezentaci inspirovanou MIRerm, a přeložit do ní program s vysokoúrovňové reprezentace a reprezetace typů.
 
       Z této nové reprezentace jsou pak získány relevatní informace o programu, předány výpočetnímu systému Polonius, vivinutému vývojáři rustc, k samotné analýze.
 
-      Protože je Polonius implementovaný v Rust, bylo nutné implementovat tenkou vrstvi C ABI a Rustu pro propojení s překladačem. Pomocí této vrstvy jsou zpět také předýny informace o nalezených chybách, které jsou překladačem předánu uživateli.
+      Protože je Polonius implementovaný v Rust, bylo nutné implementovat FFI vrstvu pro propojení s překladačem.
 
       Moje řešení zahrnuje zhruba deset tisíc řídek kódu v různých částech projektu. Téměr polovina již byla přijata do hlavního repozitáře GCC. U dalších 20% probíhá review pull requestu a zbytek je prozatím v mé vývojové větvi.
     ```
@@ -310,12 +289,13 @@
   
     #notes(
     ```md
-    A nyní už v výsledkům. Jak jste viděli, tak tato analýza vyžaduje úpravy ve velké části překladače. Tedy bylo nutné vybudovat rozsáhlou infrastrukturu, aby bylo možné vůbec začít se samotnou analýzou. Proto jsou možnosti implementované analýzi zatím omezené, na poměrně jednoduchý kód. Nicméně na tomto kódu dokážeme detekovat velkou část porušení pravidel přístupu k paměti.
+    Jak jste viděli, tak tato analýza vyžaduje úpravy ve velké části překladače. Tedy bylo nutné vybudovat rozsáhlou infrastrukturu, aby bylo možné vůbec **začít** se samotnou analýzou. Proto jsou možnosti implementované analýzi zatím omezené na poměrně **jednoduchý kód**. Nicméně na tomto kódu dokážeme detekovat velkou část porušení pravidel přístupu k paměti.
 
 
     Známe limitace, jsou popsané detailněji v textu mé práce, a všechny jsou technického charakteru a mělo by být možné je vyřešit prostým rozšířením existujícího kódu.
 
-    Hlavní limitací je překlad složitých jazykových kontruktů do nové reprezentace.    ```
+    Hlavní limitací je překlad složitých jazykových kontruktů do nové reprezentace.
+    ```
   )
 ]
 
@@ -342,7 +322,7 @@
 
     #notes(
       ```md
-        Na tomto příkladu vydíte porušení pravidel o existenci více referencí.
+        Na tomto příkladu vydíte porušení pravidel o současné existenci více referencí.
       ```
     )
 ]
@@ -406,7 +386,7 @@
   #error([Found subset errors in function complex_cfg_subset])
     #notes(
     ```md
-      Zde je demostrována kontrola na hracinici funkce. V první větvi podmínky je navrácena reference, jejíž oblast života není jakkoliv provázána s návratovou hodnotou. Proto není možné prokázat, že vrácená reference vždy ukazuje na validní objekt.
+      Zde je demostrována kontrola na hracinici funkce. V první větvi podmínky je navrácena reference, jejíž životnost není jakkoliv provázána s návratovou hodnotou. Proto není možné prokázat, že vrácená reference vždy ukazuje na validní objekt.
     ```
   )
 ]
@@ -420,9 +400,10 @@
 
     #notes(
       ```md
-        Co se budoucnosti této práce týče, můžu zmínit, že společnosti Open Source Security, jeden z hlavních sponzorů Rust GCC projevila zájem o financování pokračování mé práce.
+        Co se budoucnosti této práce týče, pokud to bude v rámci mé další kariéry možné, chtěl bych na projektu pokračovat.
+        Můžu zmínit, že společnosti Open Source Security, jeden z hlavních sponzorů Rust GCC projevila zájem o financování pokračování mé práce.
 
-        Dále také připravujeme projekt do Google Summer of Code, který by řešil některé ze zmíněných limitací.
+        Dále také připravujeme projekt do Google Summer of Code, který by řešil některé z  limitací.
       ```
     )
 ]
