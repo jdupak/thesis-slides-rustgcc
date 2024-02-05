@@ -107,9 +107,9 @@
   = Checking Functions
 
   #let f = ```rust
-  struct Vec<'a> { ... }
+  struct Vec<&'a i32> { ... }
 
-  impl<'a> Vec<'a> {
+  impl<'a> Vec<&'a i32> {
     fn push<'b> where 'b: 'a (&mut self, x: &'b i32) {
       // ...
     }
